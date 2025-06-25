@@ -3,7 +3,7 @@
 Open-source dashboard to discover AI models, learning paths, and use cases.  
 
 ## Live Demo  
-Access the dashboard here: [https://Kamalraj21.github.io/ai-dashboard](https://Kamalraj21.github.io/ai-dashboard](https://kamalraj21.github.io/ai-dashboard-/)
+Access the dashboard here: [https://Kamalraj21.github.io/ai-dashboard](https://kamalraj21.github.io/ai-dashboard-/)
 
 ## Features  
 - Filter models by task (image generation, coding, etc.)  
