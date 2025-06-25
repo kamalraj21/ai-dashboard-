@@ -1,18 +1,16 @@
-# AI Model Dashboard
+# AI Model Dashboard  
 
-Open-source dashboard for discovering AI models and learning paths.
+Open-source dashboard to discover AI models, learning paths, and use cases.  
 
-## Features
-- Filter models by task (image generation, text summarization, etc.)
-- View learning paths for different skill levels
-- Compare free vs paid options
+## Live Demo  
+Access the dashboard here: [https://Kamalraj21.github.io/ai-dashboard](https://Kamalraj21.github.io/ai-dashboard)  
 
-## How to Use
-1. Clone this repo
-2. Open `index.html` in your browser
-3. Select your task and skill level to get recommendations
+## Features  
+- Filter models by task (image generation, coding, etc.)  
+- View learning paths for beginners, intermediate, and advanced users  
+- Compare free vs paid models  
 
-## Contributing
-1. Fork the repository
-2. Add new models to the `models` array in index.html
-3. Submit a pull request
+## How to Contribute  
+1. Fork this repo  
+2. Add new models to `index.html`  
+3. Submit a pull request  
