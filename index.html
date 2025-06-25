@@ -1,0 +1,184 @@
+<!-- ai-dashboard/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Model Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card-img-top {
+            height: 200px;
+            object-fit: cover;
+        }
+        .task-tag {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .task-tag:hover {
+            background: #0d6efd !important;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">AI Dashboard</a>
+            <div class="d-flex gap-2">
+                <select id="userLevel" class="form-select">
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                </select>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <h1 class="mb-4">AI Model Explorer</h1>
+        
+        <!-- Task Selector -->
+        <div class="mb-4">
+            <h5>What do you want to do?</h5>
+            <div class="d-flex flex-wrap gap-2" id="taskTags">
+                <span class="badge bg-light text-dark task-tag" data-task="image-generation">Image Generation</span>
+                <span class="badge bg-light text-dark task-tag" data-task="text-summarization">Text Summarization</span>
+                <span class="badge bg-light text-dark task-tag" data-task="code-generation">Code Generation</span>
+                <span class="badge bg-light text-dark task-tag" data-task="data-analysis">Data Analysis</span>
+                <span class="badge bg-light text-dark task-tag" data-task="translation">Translation</span>
+            </div>
+        </div>
+
+        <!-- Model Grid -->
+        <div class="row" id="modelGrid"></div>
+
+        <!-- Learning Path -->
+        <div class="mt-5" id="learningPath" style="display: none">
+            <h3>Learning Path</h3>
+            <div class="accordion" id="pathAccordion"></div>
+        </div>
+    </div>
+
+    <script>
+        // Model Database
+        const models = [
+            {
+                name: "Stable Diffusion 2.1",
+                cost: "Free",
+                task: "image-generation",
+                level: "beginner",
+                url: "https://huggingface.co/stabilityai/stable-diffusion-2-1",
+                useCase: "Art creation, product design, marketing visuals",
+                learningSteps: [
+                    "Try in browser: <a href='https://huggingface.co/spaces/stabilityai/stable-diffusion'>Hugging Face Space</a>",
+                    "Local setup: <a href='https://github.com/Stability-AI/StableDiffusion'>GitHub Repo</a>"
+                ]
+            },
+            {
+                name: "GPT-4",
+                cost: "Paid",
+                task: "text-summarization",
+                level: "intermediate",
+                url: "https://openai.com/gpt-4",
+                useCase: "Document analysis, content creation, Q&A",
+                learningSteps: [
+                    "API basics: <a href='https://platform.openai.com/docs/guides/text-generation'>OpenAI Docs</a>",
+                    "Build project: <a href='https://github.com/openai/openai-cookbook'>Cookbook Examples</a>"
+                ]
+            },
+            {
+                name: "CodeLlama",
+                cost: "Free",
+                task: "code-generation",
+                level: "advanced",
+                url: "https://huggingface.co/codellama",
+                useCase: "Code completion, pair programming",
+                learningSteps: [
+                    "Try locally: <a href='https://github.com/facebookresearch/codellama'>GitHub</a>",
+                    "VS Code integration: <a href='https://marketplace.visualstudio.com/items?itemName=GitHub.copilot'>GitHub Copilot</a>"
+                ]
+            }
+        ];
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            // Task tag click handler
+            document.querySelectorAll('.task-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    filterModels(this.dataset.task);
+                    showLearningPath(this.dataset.task);
+                });
+            });
+
+            // Initialize with default view
+            renderAllModels();
+        });
+
+        // Model filtering
+        function filterModels(task) {
+            const userLevel = document.getElementById('userLevel').value;
+            const filtered = models.filter(m => 
+                m.task === task && 
+                (m.level === userLevel || m.level === 'beginner')
+            );
+            renderModelGrid(filtered);
+        }
+
+        // Render model grid
+        function renderModelGrid(models) {
+            const container = document.getElementById('modelGrid');
+            container.innerHTML = models.map(m => `
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <img src="https://via.placeholder.com/300x200" class="card-img-top" alt="${m.name}">
+                        <div class="card-body">
+                            <h5 class="card-title">${m.name}</h5>
+                            <p class="card-text">
+                                <span class="badge ${m.cost === 'Free' ? 'bg-success' : 'bg-warning'}">
+                                    ${m.cost}
+                                </span>
+                                <span class="badge bg-info">${m.task.split('-').join(' ')}</span>
+                            </p>
+                            <p>${m.useCase}</p>
+                            <a href="${m.url}" class="btn btn-primary" target="_blank">Explore Model</a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Show learning path
+        function showLearningPath(task) {
+            const pathSection = document.getElementById('learningPath');
+            const accordion = document.getElementById('pathAccordion');
+            
+            const relevantModels = models.filter(m => m.task === task);
+            if(relevantModels.length === 0) return;
+
+            pathSection.style.display = 'block';
+            accordion.innerHTML = relevantModels.map((m, i) => `
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#collapse${i}">
+                            ${m.name} Learning Path
+                        </button>
+                    </h2>
+                    <div id="collapse${i}" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <ol>${m.learningSteps.map(step => `<li>${step}</li>`).join('')}</ol>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initial render all models
+        function renderAllModels() {
+            renderModelGrid(models);
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
