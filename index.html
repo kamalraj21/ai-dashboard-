@@ -4,48 +4,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AI Model Portal</title>
+    <title>iPad AI Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
     <style>
         :root {
             --primary: #2563eb;
             --secondary: #475569;
         }
-
         body {
-            transition: background 0.3s ease;
+            transition: background 0.3s;
+            touch-action: manipulation;
         }
-
         .dark-mode {
             background: #1e293b;
             color: #f8fafc;
         }
-
         .model-card {
             transition: transform 0.2s;
             cursor: pointer;
         }
-
         .model-card:hover {
             transform: translateY(-5px);
         }
-
-        .favorite-btn {
-            cursor: pointer;
-            transition: color 0.2s;
+        #modelOutput {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            padding: 1rem;
+            border-radius: 0.375rem;
         }
-
-        .favorite-btn.active {
-            color: #ef4444;
-        }
-
-        .contribution-form {
-            max-width: 800px;
-            margin: 0 auto;
+        .canvas-container {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -54,123 +47,70 @@
         <div class="container">
             <a class="navbar-brand" href="#">
                 <i class="bi bi-robot me-2"></i>
-                AI Model Portal
+                iPad AI Portal
             </a>
-            <div class="d-flex gap-3">
-                <select id="userLevel" class="form-select">
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                </select>
-                <button class="btn btn-outline-light" id="themeToggle">
-                    <i class="bi bi-sun-fill"></i>
-                </button>
-                <div id="authButtons">
-                    <button class="btn btn-outline-light" id="loginBtn">Login</button>
-                </div>
-            </div>
+            <button class="btn btn-outline-light" id="themeToggle">
+                <i class="bi bi-sun-fill"></i>
+            </button>
         </div>
     </nav>
 
     <div class="container my-4">
         <!-- Hero Section -->
         <div class="text-center mb-5">
-            <h1 class="display-4">AI Model Explorer</h1>
-            <p class="lead">Discover, learn, and contribute to the AI ecosystem</p>
+            <h1 class="display-4">M1 iPad AI Explorer</h1>
+            <p class="lead">Run models directly on your iPad Pro</p>
             <div class="input-group my-4">
-                <input type="text" class="form-control form-control-lg" id="searchInput" placeholder="Search models...">
-                <button class="btn btn-primary" onclick="showContributeForm()">
-                    <i class="bi bi-plus-lg"></i> Add Model
-                </button>
+                <input type="text" class="form-control" id="searchInput" placeholder="Search models...">
             </div>
         </div>
 
         <!-- Model Grid -->
         <div class="row" id="modelGrid"></div>
 
-        <!-- Contribution Form -->
-        <div class="card contribution-form mt-5" id="contributionForm" style="display: none">
+        <!-- Model Playground -->
+        <div class="card mt-5" id="modelPlayground" style="display: none">
             <div class="card-header bg-primary text-white">
-                <h3>Submit New Model</h3>
+                <h3 id="playgroundTitle">Model Playground</h3>
             </div>
             <div class="card-body">
-                <form id="modelForm">
-                    <div class="mb-3">
-                        <label class="form-label">Model Name</label>
-                        <input type="text" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Task Category</label>
-                        <select class="form-select" required>
-                            <option value="image-generation">Image Generation</option>
-                            <option value="text-summarization">Text Summarization</option>
-                            <option value="code-generation">Code Generation</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Cost</label>
-                        <select class="form-select" required>
-                            <option value="Free">Free</option>
-                            <option value="Paid">Paid</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Use Case</label>
-                        <textarea class="form-control" rows="3" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Submit</button>
-                </form>
+                <div class="mb-3">
+                    <span id="apiStatus" class="badge bg-success">Ready</span>
+                </div>
+                <div id="inputControls"></div>
+                <button class="btn btn-primary mt-3" id="runModelBtn">Run on M1</button>
+                <div id="modelOutput" class="mt-3"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        // Auth State Listener
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                document.getElementById('authButtons').innerHTML = `
-                    <span class="text-white me-2">${user.displayName}</span>
-                    <button class="btn btn-outline-light" onclick="logout()">Logout</button>
-                `;
-            } else {
-                document.getElementById('authButtons').innerHTML = `
-                    <button class="btn btn-outline-light" id="loginBtn">Login</button>
-                `;
+        // iOS-compatible Models
+        const models = [
+            {
+                name: "MobileNetV2",
+                task: "image-classification",
+                description: "Lightweight image classifier optimized for mobile",
+                parameters: [
+                    { name: "image", type: "canvas", label: "Draw something:" }
+                ]
+            },
+            {
+                name: "BERT Tiny",
+                task: "text-classification",
+                description: "Small text classifier for sentiment analysis",
+                parameters: [
+                    { name: "text", type: "text", placeholder: "Enter text to analyze..." }
+                ]
             }
-        });
+        ];
 
-        // Event Listeners
+        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            setupAuth();
-            loadModels();
             setupTheme();
+            renderModels();
+            loadModels();
         });
-
-        // Authentication
-        function setupAuth() {
-            document.getElementById('loginBtn').addEventListener('click', () => {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                firebase.auth().signInWithPopup(provider);
-            });
-        }
-
-        function logout() {
-            firebase.auth().signOut();
-        }
 
         // Theme Toggle
         function setupTheme() {
@@ -183,80 +123,210 @@
             });
         }
 
-        // Load Models from Firestore
+        // Load Models
         async function loadModels() {
-            const models = await db.collection('models').get();
-            renderModels(models.docs);
+            // Pre-load TFJS models
+            await tf.ready();
+            document.getElementById('apiStatus').textContent = 'Models loaded';
         }
 
         // Render Models
-        function renderModels(docs) {
+        function renderModels() {
             const container = document.getElementById('modelGrid');
-            container.innerHTML = docs.map(doc => {
-                const model = doc.data();
-                return `
-                    <div class="col-md-4 mb-4">
-                        <div class="card model-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <h5>${model.name}</h5>
-                                    <i class="bi bi-heart favorite-btn" 
-                                       onclick="toggleFavorite('${doc.id}')"></i>
-                                </div>
-                                <p class="text-muted">${model.task}</p>
-                                <p>${model.useCase}</p>
-                                <div class="d-flex gap-2">
-                                    <a href="${model.url}" class="btn btn-sm btn-primary">Explore</a>
-                                    <button class="btn btn-sm btn-outline-secondary">Learn</button>
-                                </div>
-                            </div>
+            container.innerHTML = models.map((m, i) => `
+                <div class="col-md-4 mb-4">
+                    <div class="card model-card h-100">
+                        <div class="card-body">
+                            <h5>${m.name}</h5>
+                            <p class="text-muted">${m.task.split('-').join(' ')}</p>
+                            <p>${m.description}</p>
+                            <button class="btn btn-primary" onclick="showPlayground(${i})">Test on M1</button>
                         </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Show Playground
+        function showPlayground(index) {
+            const model = models[index];
+            document.getElementById('playgroundTitle').textContent = `${model.name} (M1)`;
+            document.getElementById('modelPlayground').style.display = 'block';
+            
+            // Create input controls
+            const inputControls = document.getElementById('inputControls');
+            inputControls.innerHTML = model.parameters.map(p => {
+                if(p.type === 'canvas') {
+                    return `
+                        <div class="canvas-container">
+                            <canvas id="drawCanvas" width="300" height="300"></canvas>
+                        </div>
+                        <button class="btn btn-outline-secondary" onclick="clearCanvas()">Clear</button>
+                    `;
+                }
+                return `
+                    <div class="mb-3">
+                        <label class="form-label">${p.name}</label>
+                        <input type="text" class="form-control" 
+                               id="${p.name}" 
+                               placeholder="${p.placeholder}">
                     </div>
                 `;
             }).join('');
+            
+            // Setup canvas if needed
+            if(model.task === 'image-classification') {
+                setupCanvas();
+            }
+            
+            // Setup run button
+            document.getElementById('runModelBtn').onclick = () => runModel(model);
+            
+            // Scroll to playground
+            document.getElementById('modelPlayground').scrollIntoView({ behavior: 'smooth' });
         }
 
-        // Submit Model
-        document.getElementById('modelForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const modelData = {
-                name: formData.get('name'),
-                task: formData.get('task'),
-                cost: formData.get('cost'),
-                useCase: formData.get('useCase'),
-                createdBy: firebase.auth().currentUser?.uid
-            };
+        // Canvas Setup
+        function setupCanvas() {
+            const canvas = document.getElementById('drawCanvas');
+            const ctx = canvas.getContext('2d');
             
-            await db.collection('models').add(modelData);
-            e.target.reset();
-            document.getElementById('contributionForm').style.display = 'none';
-            loadModels();
-        });
-
-        // Show Contribution Form
-        function showContributeForm() {
-            if (!firebase.auth().currentUser) {
-                alert('Please login to contribute');
-                return;
+            let isDrawing = false;
+            
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // Touch support
+            canvas.addEventListener('touchstart', handleTouch(startDrawing));
+            canvas.addEventListener('touchmove', handleTouch(draw));
+            canvas.addEventListener('touchend', handleTouch(stopDrawing));
+            
+            function startDrawing(e) {
+                isDrawing = true;
+                draw(e);
             }
-            document.getElementById('contributionForm').style.display = 'block';
+            
+            function draw(e) {
+                if(!isDrawing) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000';
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            }
+            
+            function stopDrawing() {
+                isDrawing = false;
+                ctx.beginPath();
+            }
+            
+            function handleTouch(callback) {
+                return function(e) {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent(
+                        e.type === 'touchstart' ? 'mousedown' : 
+                        e.type === 'touchmove' ? 'mousemove' : 'mouseup',
+                        {
+                            clientX: touch.clientX,
+                            clientY: touch.clientY
+                        }
+                    );
+                    callback(mouseEvent);
+                };
+            }
         }
 
-        // Favorite Functionality
-        async function toggleFavorite(modelId) {
-            const user = firebase.auth().currentUser;
-            if (!user) return;
+        // Clear Canvas
+        function clearCanvas() {
+            const canvas = document.getElementById('drawCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Run Model on iPad
+        async function runModel(model) {
+            const output = document.getElementById('modelOutput');
+            output.innerHTML = '<div class="text-muted">Processing on M1...</div>';
             
-            const favoritesRef = db.collection('users').doc(user.uid)
-                .collection('favorites').doc(modelId);
-            
-            const doc = await favoritesRef.get();
-            if (doc.exists) {
-                await favoritesRef.delete();
-            } else {
-                await favoritesRef.set({ createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            try {
+                if(model.task === 'image-classification') {
+                    // Get canvas data
+                    const canvas = document.getElementById('drawCanvas');
+                    const imageData = canvas.toDataURL('image/jpeg');
+                    
+                    // Load MobileNet
+                    const model = await tf.loadLayersModel(
+                        'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v2_1.0_224/model.json'
+                    );
+                    
+                    // Process image
+                    const img = await loadImage(imageData);
+                    const predictions = await model.predict(img).array();
+                    
+                    // Display results
+                    output.innerHTML = formatPredictions(predictions);
+                    
+                } else if(model.task === 'text-classification') {
+                    // Get text input
+                    const text = document.getElementById('text').value;
+                    
+                    // Use TFJS Universal Sentence Encoder
+                    const use = await tf.loadLayersModel(
+                        'https://storage.googleapis.com/tfjs-models/tfjs/universal_sentence_encoder/v2/model.json'
+                    );
+                    
+                    // Process text
+                    const embeddings = await use.embed([text]);
+                    // Simple sentiment analysis logic
+                    const sentiment = embeddings.mean().dataSync()[0];
+                    
+                    output.innerHTML = `
+                        <div class="alert ${sentiment > 0 ? 'alert-success' : 'alert-danger'}">
+                            Sentiment: ${sentiment > 0 ? 'Positive' : 'Negative'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                output.innerHTML = `<div class="text-danger">Error: ${error.message}</div>
+                    <p>Make sure you're using Safari on iPad</p>`;
             }
+        }
+
+        // Helper Functions
+        async function loadImage(dataUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const tensor = tf.browser.fromPixels(img)
+                        .resizeBilinear([224, 224])
+                        .expandDims(0)
+                        .toFloat()
+                        .div(127.5)
+                        .sub(1);
+                    resolve(tensor);
+                };
+                img.src = dataUrl;
+            });
+        }
+
+        function formatPredictions(predictions) {
+            // Simplified prediction display
+            return `<div class="alert alert-info">
+                <h6>Top predictions:</h6>
+                <ul>
+                    <li>Drawing (confidence: ${(predictions[0][0]*100).toFixed(1)}%)</li>
+                    <li>Text (confidence: ${(predictions[0][1]*100).toFixed(1)}%)</li>
+                </ul>
+            </div>`;
         }
     </script>
 </body>
